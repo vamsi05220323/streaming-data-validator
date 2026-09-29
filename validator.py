@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from math import isfinite
 from typing import Any, Mapping
 
 
@@ -50,10 +51,11 @@ class DataStreamValidator:
             raise KeyError(f"missing required fields: {', '.join(missing)}")
         if not isinstance(record["device_id"], str) or not record["device_id"].strip():
             raise TypeError("device_id must be a non-empty string")
-        if isinstance(record["temperature_c"], bool) or not isinstance(
-            record["temperature_c"], (int, float)
-        ):
+        temperature = record["temperature_c"]
+        if isinstance(temperature, bool) or not isinstance(temperature, (int, float)):
             raise TypeError("temperature_c must be numeric")
+        if not isfinite(temperature):
+            raise ValueError("temperature_c must be finite")
         if not isinstance(record["battery_pct"], int) or isinstance(record["battery_pct"], bool):
             raise TypeError("battery_pct must be an integer")
         if not 0 <= record["battery_pct"] <= 100:
