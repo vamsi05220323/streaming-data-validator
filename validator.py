@@ -60,7 +60,12 @@ class DataStreamValidator:
             raise TypeError("battery_pct must be an integer")
         if not 0 <= record["battery_pct"] <= 100:
             raise ValueError("battery_pct must be between 0 and 100")
-        datetime.fromisoformat(str(record["timestamp"]).replace("Z", "+00:00"))
+        timestamp = record["timestamp"]
+        if not isinstance(timestamp, str) or not timestamp.strip():
+            raise TypeError("timestamp must be a non-empty ISO-8601 string")
+        parsed_timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        if parsed_timestamp.tzinfo is None or parsed_timestamp.utcoffset() is None:
+            raise ValueError("timestamp must include a UTC offset")
         return dict(record)
 
     def _trigger_circuit_breaker(
