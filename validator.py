@@ -20,7 +20,7 @@ class DataStreamValidator:
         self._logger = logger or LOGGER
         self.circuit_open = False
 
-    def validate(self, records: list[Mapping[str, Any]]) -> bool:
+    def validate(self, records: list[object]) -> bool:
         """Validate a batch; return True only when every record is valid."""
         self.circuit_open = False
         for index, record in enumerate(records):
@@ -43,7 +43,7 @@ class DataStreamValidator:
             )
         return not self.circuit_open
 
-    def _parse_record(self, record: Mapping[str, Any]) -> dict[str, Any]:
+    def _parse_record(self, record: object) -> dict[str, Any]:
         if not isinstance(record, Mapping):
             raise TypeError("record must be a JSON object")
         missing = [field for field in self.REQUIRED_FIELDS if field not in record]
@@ -69,13 +69,13 @@ class DataStreamValidator:
         return dict(record)
 
     def _trigger_circuit_breaker(
-        self, index: int, record: Mapping[str, Any], reason: str
+        self, index: int, record: object, reason: str
     ) -> None:
         self.circuit_open = True
         self._logger.critical(
             "event=circuit_breaker_opened record_index=%d device_id=%s reason=%r",
             index,
-            record.get("device_id", "unknown"),
+            record.get("device_id", "unknown") if isinstance(record, Mapping) else "unknown",
             reason,
         )
 

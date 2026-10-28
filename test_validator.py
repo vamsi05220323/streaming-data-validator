@@ -52,6 +52,19 @@ class DataStreamValidatorTests(unittest.TestCase):
 
         self.assertTrue(DataStreamValidator().validate([record]))
 
+    def test_non_object_records_open_circuit_without_crashing(self) -> None:
+        for value in (None, [], "corrupt", 42, True):
+            with self.subTest(value=value):
+                validator = DataStreamValidator()
+                with self.assertLogs("telemetry.validator", level="INFO") as logs:
+                    self.assertFalse(validator.validate([value, self._record()]))
+                self.assertTrue(validator.circuit_open)
+                self.assertEqual([entry.levelname for entry in logs.records],
+                                 ["CRITICAL", "INFO"])
+                self.assertIn("device_id=unknown", logs.output[0])
+                self.assertIn("record must be a JSON object", logs.output[0])
+                self.assertIn("record_index=1", logs.output[1])
+
 
 if __name__ == "__main__":
     unittest.main()
