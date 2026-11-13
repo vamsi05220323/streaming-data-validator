@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from math import isfinite
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 
 LOGGER = logging.getLogger("telemetry.validator")
@@ -20,14 +20,18 @@ class DataStreamValidator:
         self._logger = logger or LOGGER
         self.circuit_open = False
 
-    def validate(self, records: list[Mapping[str, Any]]) -> bool:
-        """Validate a batch; return True only when every record is valid."""
+    def validate(
+        self, records: Iterable[Mapping[str, Any]], *, fail_fast: bool = False
+    ) -> bool:
+        """Validate records; optionally stop consuming input on the first failure."""
         self.circuit_open = False
         for index, record in enumerate(records):
             try:
                 parsed = self._parse_record(record)
             except (KeyError, TypeError, ValueError) as error:
                 self._trigger_circuit_breaker(index, record, str(error))
+                if fail_fast:
+                    break
                 continue
             except Exception as error:  # Defensive boundary for malformed sources.
                 self._logger.exception(
